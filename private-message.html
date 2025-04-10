@@ -87,7 +87,7 @@
         <input type="text" id="receiver" placeholder="Enter Receiver ID">
         <input type="text" id="message" placeholder="Type a message">
         <button id="send">Send</button>
-        
+
         <input type="file" id="fileInput">
         <button id="sendFile">Send File</button>
     </div>
@@ -113,11 +113,18 @@
         }
         myIDSpan.textContent = userID;
 
-        let username = "";
+        let username = localStorage.getItem("username") || ""; // Load username from local storage
+        usernameInput.value = username; // Set the input field value
+
+        if (username) { // If username is already stored, emit the setUsername event
+            socket.emit("setUsername", username);
+            console.log(`Username loaded from storage: ${username}`);
+        }
 
         setUsernameBtn.addEventListener("click", () => {
             username = usernameInput.value.trim();
             if (username) {
+                localStorage.setItem("username", username); // Store username in local storage
                 socket.emit("setUsername", username);
                 alert(`Username set to: ${username}`);
             }
@@ -136,9 +143,14 @@
         });
 
         messageInput.addEventListener("input", () => {
-            if (username) {
+            if (username && receiverInput.value.trim()) { // Only emit typing if username and receiver are set
                 socket.emit("typing", { sender: userID, receiver: receiverInput.value, senderName: username });
             }
+        });
+
+        receiverInput.addEventListener("input", () => {
+            // Consider whether you want to persist the receiver ID as well.
+            // If so, you can add similar localStorage logic here.
         });
 
         sendFileBtn.addEventListener("click", () => {
@@ -155,8 +167,32 @@
         function displayMessage(sender, message, time) {
             chatBox.innerHTML += `<p><strong>${sender}:</strong> ${message} <span class="time">${time}</span></p>`;
         }
+
+        socket.on("privateMessage", ({ sender, senderName, message, time }) => {
+            const senderDisplay = sender === userID ? "You" : senderName || sender;
+            displayMessage(senderDisplay, message, time);
+        });
+
+        socket.on("fileReceived", ({ sender, senderName, fileName, fileUrl, time }) => {
+            const senderDisplay = sender === userID ? "You" : senderName || sender;
+            chatBox.innerHTML += `<p><strong>${senderDisplay}:</strong> Sent a file: <a href="${fileUrl}" target="_blank" download="${fileName}">${fileName}</a> <span class="time">${time}</span></p>`;
+        });
+
+        socket.on("typing", (senderName) => {
+            if (receiverInput.value.trim() && senderName !== username) {
+                typingIndicator.textContent = `${senderName} is typing...`;
+                setTimeout(() => {
+                    typingIndicator.textContent = "";
+                }, 1000); // Clear after 1 second
+            } else {
+                typingIndicator.textContent = "";
+            }
+        });
+
+        socket.on("notification", ({ senderName, message }) => {
+            // You can implement a more visually appealing notification system here
+            console.log(`Notification from ${senderName}: ${message}`);
+        });
     </script>
 </body>
 </html>
-
-
