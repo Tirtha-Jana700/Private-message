@@ -1,4 +1,4 @@
-const socket = io("https://private-messenger.onrender.com");
+const socket = io("https://messaging-app-a73p.onrender.com");
 const chatBox = document.getElementById("chat-box");
 const usernameInput = document.getElementById("username");
 const setUsernameBtn = document.getElementById("setUsername");
